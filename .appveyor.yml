@@ -2,5 +2,6 @@ init:
   - cmd: cmake --version
 
 build_script:
-  - cmake "-GVisual Studio 15 2017" -Bbuild .
-  - cmake --build build --config "Release"
+  - cmd: mkdir build
+  - cmd: cmake "-GVisual Studio 15 2017" ..
+  - cmd: cmake --build build --config "Release"
