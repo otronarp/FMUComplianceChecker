@@ -1,8 +1,6 @@
-os: Visual Studio 2015
-
 init:
   - cmd: cmake --version
 
 build_script:
-  - cmake "-G Visual Studio 14" -Bbuild
+  - cmake "-GVisual Studio 15 2017" -Bbuild
   - cmake --build build --config "Release"
