@@ -16,11 +16,17 @@ Simulation loop for the FMI 2.0 model exchange FMUs
 fmi2_status_t do_event_iteration(fmi2_import_t *fmu, fmi2_event_info_t *eventInfo)
 {
 	fmi2_status_t fmistatus = fmi2_status_ok;
+	fmi2_boolean_t valuesOfContinuousStatesChanged   = fmi2_false;
+	fmi2_boolean_t nominalsOfContinuousStatesChanged = fmi2_false;
 	eventInfo->newDiscreteStatesNeeded = fmi2_true;
 	eventInfo->terminateSimulation     = fmi2_false;
 	while (eventInfo->newDiscreteStatesNeeded && !eventInfo->terminateSimulation) {
 		fmistatus = fmi2_import_new_discrete_states(fmu, eventInfo);
+		valuesOfContinuousStatesChanged = valuesOfContinuousStatesChanged || eventInfo->valuesOfContinuousStatesChanged;
+		nominalsOfContinuousStatesChanged = nominalsOfContinuousStatesChanged || eventInfo->nominalsOfContinuousStatesChanged;
 	}
+	eventInfo->valuesOfContinuousStatesChanged = valuesOfContinuousStatesChanged;
+	eventInfo->nominalsOfContinuousStatesChanged = nominalsOfContinuousStatesChanged;
 	return fmistatus;
 }
 
