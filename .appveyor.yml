@@ -4,5 +4,5 @@ init:
 build_script:
   - cmd: mkdir build
   - cmd: cd build
-  - cmd: cmake "-GVisual Studio 15 2017" ..
+  - cmd: cmake "-G Visual Studio 14 2015" ..
   - cmd: cmake --build . --config "Release"
