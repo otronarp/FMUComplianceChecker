@@ -8,7 +8,8 @@ build_script:
   - cmd: cmake --build . --config "Release"
 
 after_build:
-  - 7z a fmuCheck.zip %APPVEYOR_BUILD_FOLDER%\build\Release\fmuCheck.win32.exe
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
+  - cmd: 7z a fmuCheck.zip %APPVEYOR_BUILD_FOLDER%\build\Release\fmuCheck.win32.exe
 
 artifacts:
   - path: fmuCheck.zip
