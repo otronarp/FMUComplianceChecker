@@ -1,0 +1,16 @@
+init:
+  - cmd: cmake --version
+
+build_script:
+  - cmd: mkdir build
+  - cmd: cd build
+  - cmd: cmake "-GVisual Studio 14 2015" ..
+  - cmd: cmake --build . --config "Release"
+
+after_build:
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
+  - cmd: 7z a fmuCheck.zip %APPVEYOR_BUILD_FOLDER%\build\Release\fmuCheck.win32.exe
+
+artifacts:
+  - path: fmuCheck.zip
+    name: fmuCheck
