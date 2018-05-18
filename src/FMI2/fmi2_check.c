@@ -455,3 +455,69 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 	}
 	return jm_status_success;
 }
+
+
+fmi2_status_t fmi2_check_get_output(fmu_check_data_t* cdata)
+{
+	fmi2_import_t* fmu = cdata->fmu2;
+	fmi2_import_variable_list_t * vl = cdata->vl2;
+	jm_callbacks* cb = &cdata->callbacks;
+	fmi2_status_t fmistatus = fmi2_status_ok;
+	unsigned i, n = (unsigned)fmi2_import_get_variable_list_size(vl);
+
+	for(i = 0; i < n; i++) {
+		fmi2_import_variable_t* v = fmi2_import_get_variable(vl, i);
+		if (fmi2_import_get_causality(v) != fmi2_causality_enu_output){
+			continue;
+		}
+		fmi2_value_reference_t vr = fmi2_import_get_variable_vr(v); 
+		switch(fmi2_import_get_variable_base_type(v)) {
+		case fmi2_base_type_real:
+			{
+				double val;
+				fmistatus = fmi2_import_get_real(fmu,&vr, 1, &val);
+				break;
+			}
+		case fmi2_base_type_int:
+			{
+				int val;
+				fmistatus = fmi2_import_get_integer(fmu,&vr, 1, &val);
+				break;
+			}
+		case fmi2_base_type_bool:
+			{
+				fmi2_boolean_t val;
+				fmistatus = fmi2_import_get_boolean(fmu,&vr, 1, &val);
+				break;
+			}
+		case fmi2_base_type_str:
+			{
+				fmi2_string_t val;
+				fmistatus = fmi2_import_get_string(fmu,&vr, 1, &val);
+				break;
+			}
+		case fmi2_base_type_enum:
+			{
+				int val;
+				fmi2_import_variable_typedef_t* t = fmi2_import_get_variable_declared_type(v);
+				fmi2_import_enumeration_typedef_t* et = 0;
+				unsigned int item = 0;
+				const char* itname = 0;
+				if(t) et = fmi2_import_get_type_as_enum(t);
+
+				fmistatus = fmi2_import_get_integer(fmu,&vr, 1, &val);
+				if(et) itname = fmi2_import_get_enum_type_value_name(et, val);
+				if(!itname) {
+					jm_log_error(cb, fmu_checker_module, "Could not get item name for enum variable %s", fmi2_import_get_variable_name(v));
+				}
+				break;
+			}
+		}
+		if(fmistatus != fmi2_status_ok) {
+			jm_log_fatal(cb, fmu_checker_module, "fmiGetXXX returned status: %s for variable %s", 
+				fmi2_status_to_string(fmistatus), fmi2_import_get_variable_name(v));
+			return fmistatus;
+		}
+	}
+	return fmistatus;
+}
