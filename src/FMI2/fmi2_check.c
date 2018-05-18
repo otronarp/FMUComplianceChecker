@@ -473,25 +473,28 @@ jm_status_enu_t fmi2_check_get_INIT(fmu_check_data_t* cdata)
 	unsigned n_der = (unsigned)fmi2_import_get_variable_list_size(derivatives);
 	unsigned i;
 	for (i = 0; i < n_der; i++) {
-		fmi2_import_variable_t* v = fmi2_import_get_variable(derivatives, i);
-		fmi2_import_real_variable_t* rv = fmi2_import_get_variable_as_real(v);
+		fmi2_import_variable_t* dv = fmi2_import_get_variable(derivatives, i);
+		fmi2_import_real_variable_t* rv = fmi2_import_get_variable_as_real(dv);
 		if (rv == NULL) {
-			jm_log_error(cb, fmu_checker_module, "Derivative variable %s is not of real type.", fmi2_import_get_variable_name(v));
+			jm_log_error(cb, fmu_checker_module, "Derivative variable %s is not of real type.", fmi2_import_get_variable_name(dv));
 			outstatus = jm_status_error;
 			break;
 		}
 		outstatus = fmi2_import_var_list_push_back(vl_to_check, (fmi2_import_variable_t*)rv);
 		if (outstatus == jm_status_error) {
+			jm_log_fatal(cb, fmu_checker_module, "Failed to push back derivate %s to list of variables to get during initialization.", fmi2_import_get_variable_name(dv));
 			break;
 		}
-		fmi2_import_real_variable_t* dv = fmi2_import_get_real_variable_derivative_of(rv);
-		if (dv == NULL) {
-			jm_log_error(cb, fmu_checker_module, "Derivative variable %s is not declared to be the derivative of another variable.", fmi2_import_get_variable_name(v));
+		fmi2_import_real_variable_t* sv = fmi2_import_get_real_variable_derivative_of(rv);
+		if (sv == NULL) {
+			jm_log_error(cb, fmu_checker_module, "Derivative variable %s is not declared to be the derivative of another variable.", 
+				fmi2_import_get_variable_name(dv));
 			outstatus = jm_status_error;
 			break;
 		}
-		outstatus = fmi2_import_var_list_push_back(vl_to_check, (fmi2_import_variable_t*)dv);
+		outstatus = fmi2_import_var_list_push_back(vl_to_check, (fmi2_import_variable_t*)sv);
 		if (outstatus == jm_status_error) {
+			jm_log_fatal(cb, fmu_checker_module, "Failed to push back state %s to list of variables to get during initialization.", fmi2_import_get_variable_name((fmi2_import_variable_t*)sv));
 			break;
 		}
 	}
