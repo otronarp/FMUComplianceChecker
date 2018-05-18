@@ -58,8 +58,9 @@ jm_status_enu_t fmi2_cs_simulate(fmu_check_data_t* cdata)
 	}
 
 	if(jmstatus != jm_status_error) {
-		if (!fmi2_status_ok_or_warning(fmistatus = fmi2_check_get_output(cdata))) {
-			jm_log_fatal(cb, fmu_checker_module, "Failed to get output variables while in initialization mode (FMU status: %s)", fmi2_status_to_string(fmistatus));
+		jmstatus = fmi2_check_get_INIT(cdata);
+		if (jmstatus == jm_status_error) {
+			jm_log_fatal(cb, fmu_checker_module, "Failed to get outputs/continuous-time states and state derivatives while in initialization mode");
 			jmstatus = jm_status_error;
 		}
 	}

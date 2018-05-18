@@ -457,16 +457,53 @@ jm_status_enu_t fmi2_write_csv_data(fmu_check_data_t* cdata, double time) {
 }
 
 
-fmi2_status_t fmi2_check_get_output(fmu_check_data_t* cdata)
+int fmi2_output_var_filter_function(fmi2_import_variable_t* v, void * data)
+{
+	return fmi2_import_get_causality(v) == fmi2_causality_enu_output;
+}
+
+jm_status_enu_t fmi2_check_get_INIT(fmu_check_data_t* cdata)
 {
 	fmi2_import_t* fmu = cdata->fmu2;
-	fmi2_import_variable_list_t * vl = cdata->vl2;
 	jm_callbacks* cb = &cdata->callbacks;
 	fmi2_status_t fmistatus = fmi2_status_ok;
-	unsigned i, n = (unsigned)fmi2_import_get_variable_list_size(vl);
+	jm_status_enu_t outstatus = jm_status_success;
+	fmi2_import_variable_list_t* vl_to_check = fmi2_import_filter_variables(cdata->vl2, &fmi2_output_var_filter_function, NULL);
+	fmi2_import_variable_list_t* derivatives = fmi2_import_get_derivatives_list(fmu);
+	unsigned n_der = (unsigned)fmi2_import_get_variable_list_size(derivatives);
+	unsigned i;
+	for (i = 0; i < n_der; i++) {
+		fmi2_import_variable_t* v = fmi2_import_get_variable(derivatives, i);
+		fmi2_import_real_variable_t* rv = fmi2_import_get_variable_as_real(v);
+		if (rv == NULL) {
+			jm_log_error(cb, fmu_checker_module, "Derivative variable %s is not of real type.", fmi2_import_get_variable_name(v));
+			outstatus = jm_status_error;
+			break;
+		}
+		outstatus = fmi2_import_var_list_push_back(vl_to_check, (fmi2_import_variable_t*)rv);
+		if (outstatus == jm_status_error) {
+			break;
+		}
+		fmi2_import_real_variable_t* dv = fmi2_import_get_real_variable_derivative_of(rv);
+		if (dv == NULL) {
+			jm_log_error(cb, fmu_checker_module, "Derivative variable %s is not declared to be the derivative of another variable.", fmi2_import_get_variable_name(v));
+			outstatus = jm_status_error;
+			break;
+		}
+		outstatus = fmi2_import_var_list_push_back(vl_to_check, (fmi2_import_variable_t*)dv);
+		if (outstatus == jm_status_error) {
+			break;
+		}
+	}
+	if (outstatus == jm_status_error) {
+		fmi2_import_free_variable_list(vl_to_check);
+		fmi2_import_free_variable_list(derivatives);
+		return outstatus;
+	}
 
+	unsigned n = (unsigned)fmi2_import_get_variable_list_size(vl_to_check);
 	for(i = 0; i < n; i++) {
-		fmi2_import_variable_t* v = fmi2_import_get_variable(vl, i);
+		fmi2_import_variable_t* v = fmi2_import_get_variable(vl_to_check, i);
 		if (fmi2_import_get_causality(v) != fmi2_causality_enu_output){
 			continue;
 		}
@@ -514,10 +551,10 @@ fmi2_status_t fmi2_check_get_output(fmu_check_data_t* cdata)
 			}
 		}
 		if(fmistatus != fmi2_status_ok) {
-			jm_log_fatal(cb, fmu_checker_module, "fmiGetXXX returned status: %s for variable %s", 
+			jm_log_error(cb, fmu_checker_module, "fmiGetXXX returned status: %s for variable %s", 
 				fmi2_status_to_string(fmistatus), fmi2_import_get_variable_name(v));
-			return fmistatus;
+			return jm_status_error;
 		}
 	}
-	return fmistatus;
+	return outstatus;
 }
